@@ -3,13 +3,18 @@ pragma solidity ^0.8.0;
 
 // Basic interface definitions for interacting with P2P and M2M contracts
 interface IP2P {
+    function registerParticipant(address participant, bool isProsumer, uint microgridId, uint initialEnergyBalance) external ;
+    function updateEnergyBalance(address participant, uint energyBalance) external returns (int energyBalanceChange) ;
     function findProsumer(uint microgridId, uint amount) external returns (address);
-}
-
+} 
+ 
 interface IM2M {
-    function findGrid(uint amount) external returns (address);
+    function isMicrogridRegistered(uint microgridId) external view returns (bool);
+    function registerMicrogrid(uint microgridId, int initialEnergyBalance) external;  
+    function updateEnergyBalance(uint microgridId, int energyChange) external;
+    function findGrid(uint amount) external returns (uint microgridId);
 }
-
+ 
 contract Manager {
     struct Participant {
         bool isRegistered;
@@ -36,27 +41,42 @@ contract Manager {
     }
 
     // Register a new participant (prosumer or consumer) with a microgrid ID
-    function registerParticipant(bool _isProsumer, uint _microgridId) external {
+    function registerParticipant(bool isProsumer, uint microgridId, int initialEnergyBalance) external {
         require(!participants[msg.sender].isRegistered, "Already registered");
         
         participants[msg.sender] = Participant({
             isRegistered: true,
-            isProsumer: _isProsumer,
-            microgridId: _microgridId
+            isProsumer: isProsumer,
+            microgridId: microgridId
         });
+
+        p2pContract.registerParticipant(msg.sender, isProsumer, microgridId, uint(initialEnergyBalance));
+
+        if(m2mContract.isMicrogridRegistered(microgridId) == false){
+            m2mContract.registerMicrogrid(microgridId, initialEnergyBalance);
+        }else{
+            m2mContract.updateEnergyBalance(microgridId, initialEnergyBalance); 
+        }
+
         
-        emit ParticipantRegistered(msg.sender, _isProsumer, _microgridId);
+        emit ParticipantRegistered(msg.sender, isProsumer, microgridId);
+    }
+
+    function updateEnergyBalance(uint energyBalance) external onlyRegistered {
+        int energyBalanceChange = p2pContract.updateEnergyBalance(msg.sender, energyBalance);
+        m2mContract.updateEnergyBalance(participants[msg.sender].microgridId, energyBalanceChange);
     }
 
     // Request to buy or sell energy
-    function requestEnergy(uint amount, bool isBuying) external onlyRegistered {
+    function requestEnergy(uint amount, bool isBuying) external onlyRegistered  {
         if (isBuying) {
             // Buying request - find local prosumer first, then microgrid if necessary
             address seller = p2pContract.findProsumer(participants[msg.sender].microgridId, amount);
 
             if (seller == address(0)) {
                 // No local prosumer, check other microgrids
-                seller = m2mContract.findGrid(amount);
+                uint microGridId = m2mContract.findGrid(amount);
+                seller = p2pContract.findProsumer(microGridId, amount);
             }
 
             require(seller != address(0), "No energy available to fulfill request");

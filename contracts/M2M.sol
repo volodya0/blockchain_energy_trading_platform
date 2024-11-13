@@ -29,6 +29,11 @@ contract M2M {
         emit MicrogridRegistered(microgridId, initialEnergyBalance);
     }
 
+        // Register a microgrid with an initial energy balance
+    function isMicrogridRegistered(uint microgridId) external view returns (bool) {
+        return microgrids[microgridId].isRegistered;
+    }
+
     // Update the energy balance of a microgrid
     function updateEnergyBalance(uint microgridId, int energyChange) external onlyRegistered(microgridId) {
         microgrids[microgridId].energyBalance += energyChange;

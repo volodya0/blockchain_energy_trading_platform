@@ -68,8 +68,8 @@ contract P2P {
     }
 
     // Function to update the energy balance of a participant (for testing/demo purposes)
-    function updateEnergyBalance(address participant, uint newBalance) external {
+    function updateEnergyBalance(address participant, uint energyBalance) external {
         require(participants[participant].isRegistered, "Participant not registered");
-        participants[participant].energyBalance = newBalance;
+        participants[participant].energyBalance = energyBalance;
     }
 }
