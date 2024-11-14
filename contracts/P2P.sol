@@ -15,13 +15,8 @@ contract P2P {
     event ParticipantRegistered(address indexed participant, bool isProsumer, uint microgridId);
     event EnergyMatched(address indexed consumer, address indexed prosumer, uint amount);
 
-    modifier onlyRegistered() {
-        require(participants[msg.sender].isRegistered, "Not registered");
-        _;
-    }
-
     // Register a participant as a prosumer or consumer with a specific microgrid ID
-    function registerParticipant(address participant, bool isProsumer, uint microgridId, uint initialEnergyBalance) external {
+    function registerParticipant(address participant, bool isProsumer, uint microgridId, uint initialEnergyBalance) external  {
         require(!participants[participant].isRegistered, "Participant already registered");
 
         participants[participant] = Participant({
@@ -37,9 +32,7 @@ contract P2P {
     }
 
     // Find a prosumer within the same microgrid who can fulfill the energy needs of a consumer
-    function findProsumer(uint microgridId, uint amount) external onlyRegistered returns (address) {
-        address consumer = msg.sender;
-
+    function tryTradeEnergy(address consumer, uint microgridId, uint amount) external returns (address foundProsumer) {
         // Ensure that the requester is a consumer and has a valid energy requirement
         require(!participants[consumer].isProsumer, "Only consumers can request energy");
         require(participants[consumer].energyBalance == 0, "Consumer already has energy");
@@ -56,20 +49,20 @@ contract P2P {
             }
         }
 
-        require(matchedProsumer != address(0), "No matching prosumer found");
-
-        // Update the balances of the consumer and prosumer after matching
-        participants[consumer].energyBalance += amount;
-        participants[matchedProsumer].energyBalance -= amount;
-
-        emit EnergyMatched(consumer, matchedProsumer, amount);
+        if(matchedProsumer != address(0)){
+            // Update the balances of the consumer and prosumer after matching
+            participants[matchedProsumer].energyBalance -= amount;
+            participants[consumer].energyBalance += amount;
+        }
 
         return matchedProsumer;
     }
 
     // Function to update the energy balance of a participant (for testing/demo purposes)
-    function updateEnergyBalance(address participant, uint energyBalance) external {
-        require(participants[participant].isRegistered, "Participant not registered");
+    function updateEnergyBalance(address participant, uint energyBalance) external returns (int) {
+        require(participants[participant].isRegistered, "Not registered");
+        uint old = participants[participant].energyBalance;
         participants[participant].energyBalance = energyBalance;
+        return int(energyBalance) - int(old);
     }
 }

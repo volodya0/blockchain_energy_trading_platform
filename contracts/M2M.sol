@@ -51,16 +51,4 @@ contract M2M {
         
         revert("No suitable microgrid with surplus energy found");
     }
-
-    // Transfer energy from one microgrid to another
-    function transferEnergy(uint fromMicrogrid, uint toMicrogrid, uint amount) external onlyRegistered(fromMicrogrid) onlyRegistered(toMicrogrid) {
-        int intAmount = int(amount);
-        
-        require(microgrids[fromMicrogrid].energyBalance >= intAmount, "Insufficient energy in source microgrid");
-
-        microgrids[fromMicrogrid].energyBalance -= intAmount;
-        microgrids[toMicrogrid].energyBalance += intAmount;
-
-        emit EnergyTransferred(fromMicrogrid, toMicrogrid, amount);
-    }
 }

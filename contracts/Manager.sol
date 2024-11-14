@@ -5,8 +5,8 @@ pragma solidity ^0.8.0;
 interface IP2P {
     function registerParticipant(address participant, bool isProsumer, uint microgridId, uint initialEnergyBalance) external ;
     function updateEnergyBalance(address participant, uint energyBalance) external returns (int energyBalanceChange) ;
-    function findProsumer(uint microgridId, uint amount) external returns (address);
-} 
+    function tryTradeEnergy(address consumer, uint microgridId, uint amount) external returns (address foundProsumer) ;
+}  
  
 interface IM2M {
     function isMicrogridRegistered(uint microgridId) external view returns (bool);
@@ -71,12 +71,12 @@ contract Manager {
     function requestEnergy(uint amount, bool isBuying) external onlyRegistered  {
         if (isBuying) {
             // Buying request - find local prosumer first, then microgrid if necessary
-            address seller = p2pContract.findProsumer(participants[msg.sender].microgridId, amount);
+            address seller = p2pContract.tryTradeEnergy(msg.sender, participants[msg.sender].microgridId, amount);
 
             if (seller == address(0)) {
                 // No local prosumer, check other microgrids
                 uint microGridId = m2mContract.findGrid(amount);
-                seller = p2pContract.findProsumer(microGridId, amount);
+                seller = p2pContract.tryTradeEnergy(msg.sender, microGridId, amount);
             }
 
             require(seller != address(0), "No energy available to fulfill request");
