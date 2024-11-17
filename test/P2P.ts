@@ -14,7 +14,7 @@ describe("P2P Contract", function () {
 
   it("should register a participant as a prosumer", async function () {
     const microgridId = 1;
-    const initialEnergyBalance = 100;
+    const initialEnergyBalance = 100n;
 
     await p2p.registerParticipant(participant1.address, true, microgridId, initialEnergyBalance);
 
@@ -23,6 +23,18 @@ describe("P2P Contract", function () {
     expect(participant.isProsumer).to.equal(true);
     expect(participant.microgridId).to.equal(microgridId);
     expect(participant.energyBalance).to.equal(initialEnergyBalance);
+  });
+
+  it("should register a participant as a consumer", async function () {
+    const microgridId = 1;
+
+    await p2p.registerParticipant(participant2.address, false, microgridId, 0);
+
+    const participant = await p2p.participants(participant2.address);
+    expect(participant.isRegistered).to.equal(true);
+    expect(participant.isProsumer).to.equal(false);
+    expect(participant.microgridId).to.equal(microgridId);
+    expect(participant.energyBalance).to.equal(0);
   });
 
   it("should not allow the same participant to be registered twice", async function () {
@@ -40,11 +52,15 @@ describe("P2P Contract", function () {
     const microgridId = 1;
     const initialEnergyBalance = 100;
 
-    const matchedProsumer = await p2p.tryTradeEnergy(participant2.address, microgridId, 50);
-    expect(matchedProsumer).to.equal(participant1.address);
+    await p2p.registerParticipant(participant1.address, true, microgridId, initialEnergyBalance);
+    await p2p.registerParticipant(participant2.address, false, microgridId, 0);
+
+
+    await p2p.tryTradeEnergy(participant2.address, microgridId, 50);
 
     const prosumer = await p2p.participants(participant1.address);
     const consumer = await p2p.participants(participant2.address);
+
     expect(prosumer.energyBalance).to.equal(50);
     expect(consumer.energyBalance).to.equal(50);
   });

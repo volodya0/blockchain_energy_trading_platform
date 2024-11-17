@@ -17,14 +17,14 @@ describe("Manager Contract", function () {
     m2m = await M2M.deploy();
 
     const Manager = await ethers.getContractFactory("Manager");
-    manager = await Manager.deploy(p2p.address, m2m.address);
+    manager = await Manager.deploy(await p2p.getAddress(), await m2m.getAddress());
   });
 
   it("should register a participant with correct microgrid ID", async function () {
     const microgridId = 1;
     const initialEnergyBalance = 100;
 
-    await manager.registerParticipant(true, microgridId, initialEnergyBalance);
+    await manager.connect(participant1).registerParticipant(true, microgridId, initialEnergyBalance);
 
     const participant = await p2p.participants(participant1.address);
     expect(participant.isRegistered).to.equal(true);
