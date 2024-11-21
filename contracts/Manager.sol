@@ -23,8 +23,8 @@ contract Manager {
     }
 
     mapping(address => Participant) public participants;
-    IP2P public p2pContract;
-    IM2M public m2mContract;
+    IP2P public immutable p2pContract;
+    IM2M public immutable m2mContract;
 
     event ParticipantRegistered(address indexed participant, bool isProsumer, uint microgridId);
     event EnergyRequest(address indexed requester, uint amount, bool isBuying);
