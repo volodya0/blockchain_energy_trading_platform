@@ -50,11 +50,18 @@ async function simulate() {
     const users = await ethers.getSigners();
     const totalUsers = users.length;
 
+    const provider = ethers.provider;
+
+    const startBlock = await provider.getBlockNumber();
+
+
         const Manager = await ethers.getContractFactory("Manager");
     const manager = await Manager.attach("0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9");
 
 
-    const microgridCount = 5;
+
+
+    const microgridCount = 50;
     const participants = [];
     const actions = ["updateBalance", "tradeEnergy"];
     const report = {
@@ -63,6 +70,10 @@ async function simulate() {
         balanceUpdates: 0,
         successfulTrades: 0,
         failedTrades: 0,
+        metadata: {
+            blockCount: 0,
+            totalGasUsed: 0,
+        },
         logs: [] as string[],
     };
 
@@ -130,13 +141,29 @@ async function simulate() {
         }
     }
 
+    const endBlock = await provider.getBlockNumber();
+
+    let totalGasUsed = 0;
+    for (let i = startBlock; i <= endBlock; i++) {
+        const block = await provider.getBlock(i);
+        totalGasUsed += Number( block.gasUsed);
+    }
+
+    report.metadata.blockCount = endBlock - startBlock + 1;
+    report.metadata.totalGasUsed = totalGasUsed;
+
     console.log("\n--- Simulation Report ---");
     console.log(`Total Participants: ${totalUsers}`);
     console.log(`Consumers: ${report.totalConsumers}`);
     console.log(`Prosumers: ${report.totalProsumers}`);
+    console.log(`Microgrids: ${microgridCount}`);
     console.log(`Balance Updates: ${report.balanceUpdates}`);
     console.log(`Successful Trades: ${report.successfulTrades}`);
     console.log(`Failed Trades: ${report.failedTrades}`);
+    console.log("--- Blockchain Metadata ---");
+    console.log(`Total Blocks Processed: ${report.metadata.blockCount}`);
+    console.log(`Total Gas Used: ${report.metadata.totalGasUsed}`);
+    console.log("--- Logs ---");
     console.log("\nLogs:");
     report.logs.slice(-10).forEach((log) => console.log(log));
 }
